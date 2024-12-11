@@ -2,16 +2,19 @@
 {
     public class Cinema
     {
-        public int Id { get; set; } // Уникальный идентификатор
-        public string Name { get; set; } // Название кинотеатра
-        public string Location { get; set; } // Адрес
-        public List<Movie> Movies { get; set; } = new(); // Список фильмов, показываемых в кинотеатре
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Location { get; set; }
 
-        // Бизнес-логика: добавить товар продавцу
+        // Коллекция фильмов в кинотеатре
+        public List<Movie> Movies { get; set; } = new List<Movie>();
+
+        // Метод для добавления фильма
         public void AddMovie(Movie movie)
         {
-            movie.CinemaId = Id;
-            Movies.Add(movie);
+            movie.CinemaId = Id;  // Устанавливаем cinemaId фильма
+            Movies.Add(movie);  // Добавляем фильм в список кинотеатра
         }
     }
+
 }

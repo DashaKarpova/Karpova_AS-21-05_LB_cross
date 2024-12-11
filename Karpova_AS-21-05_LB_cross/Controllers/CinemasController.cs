@@ -25,10 +25,10 @@ namespace Karpova_AS_21_05_LB_cross.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Cinema>>> GetCinemas()
         {
-          if (_context.Cinemas == null)
-          {
-              return NotFound();
-          }
+            if (_context.Cinemas == null)
+            {
+                return NotFound();
+            }
             return await _context.Cinemas.ToListAsync();
         }
 
@@ -36,10 +36,10 @@ namespace Karpova_AS_21_05_LB_cross.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Cinema>> GetCinema(int id)
         {
-          if (_context.Cinemas == null)
-          {
-              return NotFound();
-          }
+            if (_context.Cinemas == null)
+            {
+                return NotFound();
+            }
             var cinema = await _context.Cinemas.FindAsync(id);
 
             if (cinema == null)
@@ -49,6 +49,7 @@ namespace Karpova_AS_21_05_LB_cross.Controllers
 
             return cinema;
         }
+
 
         // PUT: api/Cinemas/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
@@ -81,21 +82,22 @@ namespace Karpova_AS_21_05_LB_cross.Controllers
             return NoContent();
         }
 
+
         // POST: api/Cinemas
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult<Cinema>> PostCinema(Cinema cinema)
         {
-          if (_context.Cinemas == null)
-          {
-              return Problem("Entity set 'AppDbContext.Cinemas'  is null.");
-          }
+            if (_context.Cinemas == null)
+            {
+                return Problem("Entity set 'AppDbContext.Cinemas'  is null.");
+            }
             _context.Cinemas.Add(cinema);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetCinema", new { id = cinema.Id }, cinema);
         }
 
+      
         // DELETE: api/Cinemas/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCinema(int id)

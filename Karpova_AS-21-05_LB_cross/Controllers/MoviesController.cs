@@ -86,15 +86,24 @@ namespace Karpova_AS_21_05_LB_cross.Controllers
         [HttpPost]
         public async Task<ActionResult<Movie>> PostMovie(Movie movie)
         {
-          if (_context.Movies == null)
-          {
-              return Problem("Entity set 'AppDbContext.Movies'  is null.");
-          }
+            if (_context.Movies == null)
+            {
+                return Problem("Entity set 'AppDbContext.Movies' is null.");
+            }
+
+            // Если CinemaId не указан (например, при добавлении нового фильма), выбрасываем ошибку
+            if (movie.CinemaId == 0)
+            {
+                return BadRequest("CinemaId is required.");
+            }
+
+            // Если CinemaId указан, то мы устанавливаем его в модели фильма
             _context.Movies.Add(movie);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetMovie", new { id = movie.Id }, movie);
         }
+
 
         // DELETE: api/Movies/5
         [HttpDelete("{id}")]
