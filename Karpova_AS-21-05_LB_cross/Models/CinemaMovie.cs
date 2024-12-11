@@ -21,4 +21,26 @@ namespace Karpova_AS_21_05_LB_cross.Models
         public int CinemaId { get; set; }
         public int MovieId { get; set; }
     }
+
+    public class CinemaWithMoviesDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Address { get; set; }
+        public List<MovieDto> Movies { get; set; }
+    }
+
+    public class MovieWithCinemasDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; }
+        public string Genre { get; set; }
+        public int DurationInMinutes { get; set; }
+
+        [JsonIgnore]
+        public List<CinemaDto> Cinemas { get; set; }
+    }
+
+
+
 }

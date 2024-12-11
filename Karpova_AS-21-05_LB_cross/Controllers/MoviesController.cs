@@ -199,5 +199,86 @@ public async Task<ActionResult<MovieDto>> GetMovie(int id)
 
             return NoContent();
         }
+
+        //Получение всех фильмов с привязанными кинотеатрами
+        // GET: api/CinemasWithMovies
+        [HttpGet("CinemasWithMovies")]
+        public async Task<ActionResult<IEnumerable<CinemaWithMoviesDto>>> GetCinemasWithMovies()
+        {
+            var cinemas = await _context.Cinemas
+                .Include(c => c.CinemaMovies)      // Загружаем связи с CinemaMovies
+                .ThenInclude(cm => cm.Movie)      // Загружаем связанные фильмы
+                .ToListAsync();
+
+            var result = cinemas.Select(c => new CinemaWithMoviesDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Address = c.Address,
+                Movies = c.CinemaMovies.Select(cm => new MovieDto
+                {
+                    Id = cm.Movie.Id,
+                    Title = cm.Movie.Title,
+                    Genre = cm.Movie.Genre,
+                    DurationInMinutes = cm.Movie.DurationInMinutes
+                }).ToList()
+            }).ToList();
+
+            return Ok(result);
+        }
+
+        //Получение информации о фильме с подробным списком кинотеатров
+        // GET: api/MoviesWithCinemas/5
+        [HttpGet("MoviesWithCinemas/{id}")]
+        public async Task<ActionResult<MovieWithCinemasDto>> GetMovieWithCinemas(int id)
+        {
+            var movie = await _context.Movies
+                .Include(m => m.CinemaMovies)      // Загружаем связи с CinemaMovies
+                .ThenInclude(cm => cm.Cinema)     // Загружаем связанные кинотеатры
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (movie == null)
+            {
+                return NotFound();
+            }
+
+            var result = new MovieWithCinemasDto
+            {
+                Id = movie.Id,
+                Title = movie.Title,
+                Genre = movie.Genre,
+                DurationInMinutes = movie.DurationInMinutes,
+                Cinemas = movie.CinemaMovies.Select(cm => new CinemaDto
+                {
+                    Id = cm.Cinema.Id,
+                    Name = cm.Cinema.Name,
+                    Address = cm.Cinema.Address
+                }).ToList()
+            };
+
+            return Ok(result);
+        }
+
+        // GET: api/Movies/LongMovies
+        [HttpGet("ByDuration")]
+        public async Task<ActionResult<IEnumerable<MovieDto>>> GetMoviesByDuration([FromQuery] int minDuration)
+        {
+            var movies = await _context.Movies
+                .Where(m => m.DurationInMinutes > minDuration) // Фильтруем фильмы по указанной минимальной длительности
+                .Select(m => new MovieDto
+                {
+                    Id = m.Id,
+                    Title = m.Title,
+                    Genre = m.Genre,
+                    DurationInMinutes = m.DurationInMinutes
+                })
+                .ToListAsync();
+
+            return Ok(movies);
+        }
+
+
+
+
     }
 }

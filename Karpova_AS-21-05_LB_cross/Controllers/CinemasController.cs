@@ -195,6 +195,40 @@ namespace Karpova_AS_21_05_LB_cross.Controllers
             return CreatedAtAction("GetCinema", new { id = cinema.Id }, newCinemaDto);
         }
 
+        // GET: api/Cinemas/WithMovies?minMovies=3
+        [HttpGet("WithMovies")]
+        public async Task<ActionResult<IEnumerable<CinemaDto>>> GetCinemasWithMovies([FromQuery] int minMovies)
+        {
+            if (minMovies <= 0)
+            {
+                return BadRequest("Minimum number of movies must be greater than 0.");
+            }
+
+            var cinemas = await _context.Cinemas
+                .Where(c => c.CinemaMovies.Count >= minMovies) // Фильтруем кинотеатры по количеству фильмов
+                .Select(c => new CinemaDto
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Address = c.Address,
+                    CinemaMovies = c.CinemaMovies.Select(cm => new CinemaMovieDto
+                    {
+                        CinemaId = cm.CinemaId,
+                        MovieId = cm.MovieId
+                    }).ToList()
+                })
+                .ToListAsync();
+
+            if (!cinemas.Any())
+            {
+                return NotFound($"No cinemas found with at least {minMovies} movies.");
+            }
+
+            return Ok(cinemas);
+        }
+
+
+
         // DELETE: api/Cinemas/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCinema(int id)
