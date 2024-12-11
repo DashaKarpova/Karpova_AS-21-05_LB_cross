@@ -49,45 +49,43 @@ namespace Karpova_AS_21_05_LB_cross.Controllers
             return cinemaDtos;
         }
 
-
-  // GET: api/Cinemas/5
-[HttpGet("{id}")]
-public async Task<ActionResult<CinemaDto>> GetCinema(int id)
-{
-    if (_context.Cinemas == null)
-    {
-        return NotFound();
-    }
-
-    var cinema = await _context.Cinemas
-        .Include(c => c.CinemaMovies)
-        .ThenInclude(cm => cm.Movie)
-        .FirstOrDefaultAsync(c => c.Id == id);
-
-    if (cinema == null)
-    {
-        return NotFound();
-    }
-
-    var cinemaDto = new CinemaDto
-    {
-        Id = cinema.Id,
-        Name = cinema.Name,
-        Address = cinema.Address,
-        // Используем CinemaMovies вместо Movies
-        CinemaMovies = cinema.CinemaMovies
-            .Where(cm => cm.Movie != null)
-            .Select(cm => new CinemaMovieDto
+        // GET: api/Cinemas/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<CinemaDto>> GetCinema(int id)
+        {
+            if (_context.Cinemas == null)
             {
-                CinemaId = cm.CinemaId,
-                MovieId = cm.MovieId
-            })
-            .ToList()
-    };
+                return NotFound();
+            }
 
-    return cinemaDto;
-}
+            var cinema = await _context.Cinemas
+                .Include(c => c.CinemaMovies)
+                .ThenInclude(cm => cm.Movie)
+                .FirstOrDefaultAsync(c => c.Id == id);
 
+            if (cinema == null)
+            {
+                return NotFound();
+            }
+
+            var cinemaDto = new CinemaDto
+            {
+                Id = cinema.Id,
+                Name = cinema.Name,
+                Address = cinema.Address,
+                // Используем CinemaMovies вместо Movies
+                CinemaMovies = cinema.CinemaMovies
+                    .Where(cm => cm.Movie != null)
+                    .Select(cm => new CinemaMovieDto
+                    {
+                        CinemaId = cm.CinemaId,
+                        MovieId = cm.MovieId
+                    })
+                    .ToList()
+            };
+
+            return cinemaDto;
+        }
 
 
         // PUT: api/Cinemas/5
@@ -99,7 +97,10 @@ public async Task<ActionResult<CinemaDto>> GetCinema(int id)
                 return BadRequest();
             }
 
-            var cinema = await _context.Cinemas.FindAsync(id);
+            var cinema = await _context.Cinemas
+                .Include(c => c.CinemaMovies)  // Загружаем текущие связи с фильмами
+                .FirstOrDefaultAsync(c => c.Id == id);
+
             if (cinema == null)
             {
                 return NotFound();
@@ -109,7 +110,22 @@ public async Task<ActionResult<CinemaDto>> GetCinema(int id)
             cinema.Name = cinemaDto.Name;
             cinema.Address = cinemaDto.Address;
 
-            // Обновляем связанные фильмы, если нужно
+            // Обновляем связи CinemaMovies
+            // Очищаем текущие связи, если они существуют
+            cinema.CinemaMovies.Clear();
+
+            // Добавляем новые связи
+            foreach (var cinemaMovieDto in cinemaDto.CinemaMovies)
+            {
+                var cinemaMovie = new CinemaMovie
+                {
+                    CinemaId = cinema.Id,
+                    MovieId = cinemaMovieDto.MovieId
+                };
+
+                cinema.CinemaMovies.Add(cinemaMovie);
+            }
+
             _context.Entry(cinema).State = EntityState.Modified;
 
             try
@@ -131,20 +147,52 @@ public async Task<ActionResult<CinemaDto>> GetCinema(int id)
             return NoContent();
         }
 
+
         // POST: api/Cinemas
         [HttpPost]
         public async Task<ActionResult<CinemaDto>> PostCinema(CinemaDto cinemaDto)
         {
+            // Создаем новый объект Cinema на основе CinemaDto
             var cinema = new Cinema
             {
                 Name = cinemaDto.Name,
                 Address = cinemaDto.Address
             };
 
+            // Добавляем новый Cinema в контекст
             _context.Cinemas.Add(cinema);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();  // Сохраняем изменения, чтобы получить Id кинотеатра
 
-            return CreatedAtAction("GetCinema", new { id = cinema.Id }, cinemaDto);
+            // Если есть связь с фильмами, добавляем их в промежуточную таблицу CinemaMovies
+            if (cinemaDto.CinemaMovies != null && cinemaDto.CinemaMovies.Any())
+            {
+                foreach (var cinemaMovieDto in cinemaDto.CinemaMovies)
+                {
+                    // Создаем новую связь между кинотеатром и фильмом
+                    var cinemaMovie = new CinemaMovie
+                    {
+                        CinemaId = cinema.Id, // ID созданного кинотеатра
+                        MovieId = cinemaMovieDto.MovieId // ID фильма из переданных данных
+                    };
+
+                    // Добавляем связь в список CinemaMovies
+                    cinema.CinemaMovies.Add(cinemaMovie);
+                }
+
+                // Сохраняем изменения, чтобы обновить CinemaMovies в базе данных
+                await _context.SaveChangesAsync();  // Сохраняем изменения в промежуточной таблице
+            }
+
+            // Возвращаем новый объект CinemaDto с обновленными данными
+            var newCinemaDto = new CinemaDto
+            {
+                Id = cinema.Id,
+                Name = cinema.Name,
+                Address = cinema.Address,
+                CinemaMovies = cinemaDto.CinemaMovies // Возвращаем переданные данные о связях
+            };
+
+            return CreatedAtAction("GetCinema", new { id = cinema.Id }, newCinemaDto);
         }
 
         // DELETE: api/Cinemas/5
