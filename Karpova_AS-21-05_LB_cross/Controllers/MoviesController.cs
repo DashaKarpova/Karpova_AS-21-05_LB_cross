@@ -139,7 +139,7 @@ public async Task<ActionResult<MovieDto>> GetMovie(int id)
             }
 
             var movie = await _context.Movies
-                .Include(m => m.CinemaMovies)  // Загружаем текущие связи с CinemaMovies
+                .Include(m => m.CinemaMovies) // Загружаем текущие связи с кинотеатрами
                 .FirstOrDefaultAsync(m => m.Id == id);
 
             if (movie == null)
@@ -156,13 +156,13 @@ public async Task<ActionResult<MovieDto>> GetMovie(int id)
             // Очищаем текущие связи, если они существуют
             movie.CinemaMovies.Clear();
 
-            // Добавляем новые связи, если они есть в DTO
+            // Добавляем новые связи
             foreach (var cinemaMovieDto in movieDto.CinemaMovies)
             {
                 var cinemaMovie = new CinemaMovie
                 {
-                    MovieId = movie.Id,
-                    CinemaId = cinemaMovieDto.CinemaId
+                    CinemaId = cinemaMovieDto.CinemaId,
+                    MovieId = movie.Id
                 };
 
                 movie.CinemaMovies.Add(cinemaMovie);
@@ -170,8 +170,19 @@ public async Task<ActionResult<MovieDto>> GetMovie(int id)
 
             _context.Entry(movie).State = EntityState.Modified;
 
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Обрабатываем ситуацию, если объект больше не существует
+                return NotFound();
+            }
+
             return NoContent();
         }
+
 
         // DELETE: api/Movies/5
         [HttpDelete("{id}")]
