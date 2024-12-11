@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using Karpova_AS_21_05_LB_cross.Data;
+using Karpova_AS_21_05_LB_cross.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Karpova_AS_21_05_LB_cross.Data;
-using Karpova_AS_21_05_LB_cross.Models;
 
 namespace Karpova_AS_21_05_LB_cross.Controllers
 {
@@ -23,44 +18,98 @@ namespace Karpova_AS_21_05_LB_cross.Controllers
 
         // GET: api/Cinemas
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Cinema>>> GetCinemas()
+        public async Task<ActionResult<IEnumerable<CinemaDto>>> GetCinemas()
         {
             if (_context.Cinemas == null)
             {
                 return NotFound();
             }
-            return await _context.Cinemas.ToListAsync();
+
+            // Загружаем все кинотеатры с фильмами
+            var cinemas = await _context.Cinemas
+                .Include(c => c.CinemaMovies)  // Включаем связанные CinemaMovies
+                .ThenInclude(cm => cm.Movie)   // Включаем Movie, связанные с CinemaMovies
+                .ToListAsync();
+
+            // Преобразуем Cinema в CinemaDto
+            var cinemaDtos = cinemas.Select(cinema => new CinemaDto
+            {
+                Id = cinema.Id,
+                Name = cinema.Name,
+                Address = cinema.Address,
+                CinemaMovies = cinema.CinemaMovies
+                    .Where(cm => cm.Movie != null)  // Проверяем, что Movie существует
+                    .Select(cm => new CinemaMovieDto
+                    {
+                        CinemaId = cm.CinemaId,
+                        MovieId = cm.MovieId,
+                    }).ToList(),  // Преобразуем все связанные CinemaMovies в список CinemaMovieDto
+            }).ToList();
+
+            return cinemaDtos;
         }
 
-        // GET: api/Cinemas/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Cinema>> GetCinema(int id)
-        {
-            if (_context.Cinemas == null)
-            {
-                return NotFound();
-            }
-            var cinema = await _context.Cinemas.FindAsync(id);
 
+  // GET: api/Cinemas/5
+[HttpGet("{id}")]
+public async Task<ActionResult<CinemaDto>> GetCinema(int id)
+{
+    if (_context.Cinemas == null)
+    {
+        return NotFound();
+    }
+
+    var cinema = await _context.Cinemas
+        .Include(c => c.CinemaMovies)
+        .ThenInclude(cm => cm.Movie)
+        .FirstOrDefaultAsync(c => c.Id == id);
+
+    if (cinema == null)
+    {
+        return NotFound();
+    }
+
+    var cinemaDto = new CinemaDto
+    {
+        Id = cinema.Id,
+        Name = cinema.Name,
+        Address = cinema.Address,
+        // Используем CinemaMovies вместо Movies
+        CinemaMovies = cinema.CinemaMovies
+            .Where(cm => cm.Movie != null)
+            .Select(cm => new CinemaMovieDto
+            {
+                CinemaId = cm.CinemaId,
+                MovieId = cm.MovieId
+            })
+            .ToList()
+    };
+
+    return cinemaDto;
+}
+
+
+
+        // PUT: api/Cinemas/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutCinema(int id, CinemaDto cinemaDto)
+        {
+            if (id != cinemaDto.Id)
+            {
+                return BadRequest();
+            }
+
+            var cinema = await _context.Cinemas.FindAsync(id);
             if (cinema == null)
             {
                 return NotFound();
             }
 
-            return cinema;
-        }
+            // Обновляем данные кинотеатра
+            cinema.Name = cinemaDto.Name;
+            cinema.Address = cinemaDto.Address;
 
-
-        // PUT: api/Cinemas/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutCinema(int id, Cinema cinema)
-        {
-            if (id != cinema.Id)
-            {
-                return BadRequest();
-            }
-
+            // Обновляем связанные фильмы, если нужно
             _context.Entry(cinema).State = EntityState.Modified;
 
             try
@@ -82,22 +131,22 @@ namespace Karpova_AS_21_05_LB_cross.Controllers
             return NoContent();
         }
 
-
         // POST: api/Cinemas
         [HttpPost]
-        public async Task<ActionResult<Cinema>> PostCinema(Cinema cinema)
+        public async Task<ActionResult<CinemaDto>> PostCinema(CinemaDto cinemaDto)
         {
-            if (_context.Cinemas == null)
+            var cinema = new Cinema
             {
-                return Problem("Entity set 'AppDbContext.Cinemas'  is null.");
-            }
+                Name = cinemaDto.Name,
+                Address = cinemaDto.Address
+            };
+
             _context.Cinemas.Add(cinema);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetCinema", new { id = cinema.Id }, cinema);
+            return CreatedAtAction("GetCinema", new { id = cinema.Id }, cinemaDto);
         }
 
-      
         // DELETE: api/Cinemas/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCinema(int id)
@@ -106,6 +155,7 @@ namespace Karpova_AS_21_05_LB_cross.Controllers
             {
                 return NotFound();
             }
+
             var cinema = await _context.Cinemas.FindAsync(id);
             if (cinema == null)
             {
@@ -122,39 +172,6 @@ namespace Karpova_AS_21_05_LB_cross.Controllers
         {
             return (_context.Cinemas?.Any(e => e.Id == id)).GetValueOrDefault();
         }
-
-        // GET: api/Cinemas/WithMovieCount/3
-        [HttpGet("WithMovieCount/{minMovieCount}")]
-        public async Task<ActionResult<IEnumerable<Cinema>>> GetCinemasWithMovieCount(int minMovieCount)
-        {
-            var cinemas = await _context.Cinemas
-                .Where(c => _context.Movies.Count(m => m.CinemaId == c.Id) >= minMovieCount)
-                .ToListAsync();
-
-            if (!cinemas.Any())
-            {
-                return NotFound();
-            }
-
-            return cinemas;
-        }
-
-        // GET: api/Cinemas/ByMovie/5
-        [HttpGet("ByMovie/{movieId}")]
-        public async Task<ActionResult<IEnumerable<Cinema>>> GetCinemasByMovie(int movieId)
-        {
-            var cinemas = await _context.Cinemas
-                .Where(c => _context.Movies.Any(m => m.CinemaId == c.Id && m.Id == movieId))
-                .ToListAsync();
-
-            if (!cinemas.Any())
-            {
-                return NotFound(new { Message = "Кинотеатры с указанным фильмом не найдены." });
-            }
-
-            return Ok(cinemas);
-        }
-
-
     }
 }
+

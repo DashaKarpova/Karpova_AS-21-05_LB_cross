@@ -1,20 +1,38 @@
-﻿namespace Karpova_AS_21_05_LB_cross.Models
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+
+namespace Karpova_AS_21_05_LB_cross.Models
 {
     public class Cinema
     {
         public int Id { get; set; }
         public string Name { get; set; }
-        public string Location { get; set; }
+        public string Address { get; set; }
 
-        // Коллекция фильмов в кинотеатре
-        public List<Movie> Movies { get; set; } = new List<Movie>();
+      
+        public List<CinemaMovie> CinemaMovies { get; set; } = new List<CinemaMovie>();
+    
 
-        // Метод для добавления фильма
+        // Бизнес-логика
+
+        // Добавить фильм
         public void AddMovie(Movie movie)
         {
-            movie.CinemaId = Id;  // Устанавливаем cinemaId фильма
-            Movies.Add(movie);  // Добавляем фильм в список кинотеатра
+            if (!CinemaMovies.Any(cm => cm.MovieId == movie.Id))
+            {
+                CinemaMovies.Add(new CinemaMovie { CinemaId = Id, MovieId = movie.Id, Movie = movie });
+            }
         }
     }
+
+    public class CinemaDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Address { get; set; }
+        public List<CinemaMovieDto> CinemaMovies { get; set; } = new List<CinemaMovieDto>();
+    }
+
+
 
 }

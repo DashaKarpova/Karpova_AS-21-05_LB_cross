@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Karpova_AS_21_05_LB_cross.Data;
@@ -23,23 +21,24 @@ namespace Karpova_AS_21_05_LB_cross.Controllers
 
         // GET: api/Movies
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Movie>>> GetMovies()
+        public async Task<ActionResult<IEnumerable<MovieDto>>> GetMovies()
         {
-          if (_context.Movies == null)
-          {
-              return NotFound();
-          }
-            return await _context.Movies.ToListAsync();
+            var movies = await _context.Movies.ToListAsync();
+            var movieDtos = movies.Select(m => new MovieDto
+            {
+                Id = m.Id,
+                Title = m.Title,
+                Genre = m.Genre,
+                DurationInMinutes = m.DurationInMinutes
+            }).ToList();
+
+            return movieDtos;
         }
 
         // GET: api/Movies/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Movie>> GetMovie(int id)
+        public async Task<ActionResult<MovieDto>> GetMovie(int id)
         {
-          if (_context.Movies == null)
-          {
-              return NotFound();
-          }
             var movie = await _context.Movies.FindAsync(id);
 
             if (movie == null)
@@ -47,72 +46,71 @@ namespace Karpova_AS_21_05_LB_cross.Controllers
                 return NotFound();
             }
 
-            return movie;
+            var movieDto = new MovieDto
+            {
+                Id = movie.Id,
+                Title = movie.Title,
+                Genre = movie.Genre,
+                DurationInMinutes = movie.DurationInMinutes
+            };
+
+            return movieDto;
+        }
+
+        // POST: api/Movies
+        [HttpPost]
+        public async Task<ActionResult<MovieDto>> PostMovie(MovieDto movieDto)
+        {
+            var movie = new Movie
+            {
+                Title = movieDto.Title,
+                Genre = movieDto.Genre,
+                DurationInMinutes = movieDto.DurationInMinutes
+            };
+
+            _context.Movies.Add(movie);
+            await _context.SaveChangesAsync();
+
+            var newMovieDto = new MovieDto
+            {
+                Id = movie.Id,
+                Title = movie.Title,
+                Genre = movie.Genre,
+                DurationInMinutes = movie.DurationInMinutes
+            };
+
+            return CreatedAtAction("GetMovie", new { id = movie.Id }, newMovieDto);
         }
 
         // PUT: api/Movies/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutMovie(int id, Movie movie)
+        public async Task<IActionResult> PutMovie(int id, MovieDto movieDto)
         {
-            if (id != movie.Id)
+            if (id != movieDto.Id)
             {
                 return BadRequest();
             }
 
-            _context.Entry(movie).State = EntityState.Modified;
+            var movie = await _context.Movies.FindAsync(id);
+            if (movie == null)
+            {
+                return NotFound();
+            }
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!MovieExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            movie.Title = movieDto.Title;
+            movie.Genre = movieDto.Genre;
+            movie.DurationInMinutes = movieDto.DurationInMinutes;
+
+            _context.Entry(movie).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }
-
-        // POST: api/Movies
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Movie>> PostMovie(Movie movie)
-        {
-            if (_context.Movies == null)
-            {
-                return Problem("Entity set 'AppDbContext.Movies' is null.");
-            }
-
-            // Если CinemaId не указан (например, при добавлении нового фильма), выбрасываем ошибку
-            if (movie.CinemaId == 0)
-            {
-                return BadRequest("CinemaId is required.");
-            }
-
-            // Если CinemaId указан, то мы устанавливаем его в модели фильма
-            _context.Movies.Add(movie);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetMovie", new { id = movie.Id }, movie);
-        }
-
 
         // DELETE: api/Movies/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteMovie(int id)
         {
-            if (_context.Movies == null)
-            {
-                return NotFound();
-            }
             var movie = await _context.Movies.FindAsync(id);
             if (movie == null)
             {
@@ -124,27 +122,5 @@ namespace Karpova_AS_21_05_LB_cross.Controllers
 
             return NoContent();
         }
-
-        private bool MovieExists(int id)
-        {
-            return (_context.Movies?.Any(e => e.Id == id)).GetValueOrDefault();
-        }
-
-        // GET: api/Movies/ByCinema/5
-        [HttpGet("ByCinema/{cinemaId}")]
-        public async Task<ActionResult<IEnumerable<Movie>>> GetMoviesByCinema(int cinemaId)
-        {
-            var movies = await _context.Movies
-                .Where(m => m.CinemaId == cinemaId)
-                .ToListAsync();
-
-            if (!movies.Any())
-            {
-                return NotFound();
-            }
-
-            return movies;
-        }
     }
-
 }

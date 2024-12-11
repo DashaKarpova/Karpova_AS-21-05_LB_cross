@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Karpova_AS_21_05_LB_cross.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241211011035_InitialCreate")]
+    [Migration("20241211161401_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -25,7 +25,7 @@ namespace Karpova_AS_21_05_LB_cross.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Location")
+                    b.Property<string>("Address")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
@@ -38,16 +38,28 @@ namespace Karpova_AS_21_05_LB_cross.Migrations
                     b.ToTable("Cinemas");
                 });
 
+            modelBuilder.Entity("Karpova_AS_21_05_LB_cross.Models.CinemaMovie", b =>
+                {
+                    b.Property<int>("CinemaId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MovieId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("CinemaId", "MovieId");
+
+                    b.HasIndex("MovieId");
+
+                    b.ToTable("CinemaMovies");
+                });
+
             modelBuilder.Entity("Karpova_AS_21_05_LB_cross.Models.Movie", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("CinemaId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("DurationMinutes")
+                    b.Property<int>("DurationInMinutes")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Genre")
@@ -60,25 +72,36 @@ namespace Karpova_AS_21_05_LB_cross.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CinemaId");
-
                     b.ToTable("Movies");
                 });
 
-            modelBuilder.Entity("Karpova_AS_21_05_LB_cross.Models.Movie", b =>
+            modelBuilder.Entity("Karpova_AS_21_05_LB_cross.Models.CinemaMovie", b =>
                 {
                     b.HasOne("Karpova_AS_21_05_LB_cross.Models.Cinema", "Cinema")
-                        .WithMany("Movies")
+                        .WithMany("CinemaMovies")
                         .HasForeignKey("CinemaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Karpova_AS_21_05_LB_cross.Models.Movie", "Movie")
+                        .WithMany("CinemaMovies")
+                        .HasForeignKey("MovieId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Cinema");
+
+                    b.Navigation("Movie");
                 });
 
             modelBuilder.Entity("Karpova_AS_21_05_LB_cross.Models.Cinema", b =>
                 {
-                    b.Navigation("Movies");
+                    b.Navigation("CinemaMovies");
+                });
+
+            modelBuilder.Entity("Karpova_AS_21_05_LB_cross.Models.Movie", b =>
+                {
+                    b.Navigation("CinemaMovies");
                 });
 #pragma warning restore 612, 618
         }
