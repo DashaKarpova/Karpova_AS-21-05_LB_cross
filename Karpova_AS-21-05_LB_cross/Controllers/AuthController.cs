@@ -28,6 +28,12 @@ namespace Karpova_AS_21_05_LB_cross.Controllers
                 return Ok(new { token });
             }
 
+            else if (loginDto.Username == "user" && loginDto.Password == "user12345")
+            {
+                var token = GenerateJwtToken(loginDto.Username);
+                return Ok(new { token });
+            }
+
             return Unauthorized(); // Неверные логин/пароль
         }
 

@@ -46,6 +46,7 @@ app.UseAuthentication(); // Добавляем Middleware для аутентификации
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapGet("/", () => Results.Ok("Приложение работает!"));
 
 app.Run();
 

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Karpova_AS_21_05_LB_cross.Data;
 using Karpova_AS_21_05_LB_cross.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Karpova_AS_21_05_LB_cross.Controllers
 {
